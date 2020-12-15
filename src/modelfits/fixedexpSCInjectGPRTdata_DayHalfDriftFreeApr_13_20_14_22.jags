@@ -1,0 +1,99 @@
+
+model {
+
+    #Between-condition variability in Rightward/Leftward drift rate
+    deltarightsdcond ~ dgamma(1,1)
+
+    #Between-session variability in non-decision time
+    tersd ~ dgamma(.3,1)
+
+    #Between-session variability in Speed-accuracy trade-off
+    alphasd ~ dgamma(1,1)
+
+    #Between-session variability in Rightward start point bias
+    betasd ~ dgamma(.3,1)
+
+    #Between-session variability in lapse trial probability
+    problapsesd ~ dgamma(.3,1)
+
+    #Between-session variability in Rightward/Leftward drift rate
+    deltarightsd ~ dgamma(1,1)
+
+    for (m in 1:nmonkeys) {
+        ##########
+        #Hierarchical DDM parameters
+        ##########
+
+        #Hierarchical Non-decision time
+        terhier[m] ~ dnorm(.5, pow(.25,-2))
+
+        #Hierarchical Speed-accuracy trade-off
+        alphahier[m] ~ dnorm(1, pow(.5,-2))
+
+        #Hierarchical Rightward start point bias
+        betahier[m] ~ dnorm(.5, pow(.25,-2))
+
+        #Hierarchical lapse trial probability
+        problapsehier[m] ~ dnorm(.3, pow(.15,-2))
+
+        for (e in 1:ninject) {
+
+            #Hierarchical Rightward/Leftward drift rate
+            deltarighthier[e,m] ~ dnorm(0, pow(2, -2))
+        }
+    }
+
+    ##########
+    #DDM parameters
+    ##########
+
+    for (d in 1:ndays) {
+        #Non-decision time
+        ter[d] ~ dnorm(terhier[monkeyday[d]], pow(tersd,-2))T(0, 1)
+
+        #Speed-accuracy trade-off
+        alpha[d] ~ dnorm(alphahier[monkeyday[d]], pow(alphasd,-2))T(0, 3)
+
+        #Rightward start point bias
+        beta[d] ~ dnorm(betahier[monkeyday[d]], pow(betasd,-2))T(0, 1)
+
+        #Probability of a lapse trial
+        problapse[d] ~ dnorm(problapsehier[monkeyday[d]], pow(problapsesd,-2))T(0, 1)
+        probDDM[d] <- 1 - problapse[d]
+    }
+
+
+    for (s in 1:nsessions) {
+
+        #Rightward/Leftward drift rate
+        deltarightses[s] ~ dnorm(deltarighthier[inject[s],monkey[s]], pow(deltarightsd, -2))
+
+        for (c in 1:nconditions) {
+
+            #Rightward/Leftward drift rate
+            deltaright[s,c] ~ dnorm(deltarightses[s], pow(deltarightsdcond, -2))T(-9, 9)
+
+        }
+
+    }
+
+    ##########
+    # Wiener likelihoods
+    for (i in 1:N) {
+
+        # Log density for DDM process of rightward/leftward RT
+        ld_comp2[i, 1] <- dlogwiener(rightwardRT[i], alpha[day[i]], ter[day[i]], beta[day[i]], deltaright[session[i],condition[i]])
+
+        # Log density for lapse trials (negative max RT to positive max RT)
+        ld_comp2[i, 2] <- logdensity.unif(rightwardRT[i], -3, 3)
+
+        # Select one of these two densities (Mixture of nonlapse and lapse trials)
+        density2[i] <- exp(ld_comp2[i, DDMorLapse[i]] - Constant)
+        
+        # Generate a likelihood for the MCMC sampler using a trick to maximize density value
+        Ones2[i] ~ dbern(density2[i])
+
+        # Probability of mind wandering trials (lapse trials)
+        DDMorLapse[i] ~ dcat( c(probDDM[day[i]], problapse[day[i]]) )
+    }
+}

@@ -1,0 +1,108 @@
+
+model {
+
+    #Between-session variability in non-decision time
+    tersd ~ dgamma(.3,1)
+
+    #Between-session variability in Speed-accuracy trade-off
+    alphasd ~ dgamma(1,1)
+
+    #Between-session variability in Rightward start point bias
+    betasd ~ dgamma(.3,1)
+
+    #Between-session variability in lapse trial probability
+    problapsesd ~ dgamma(.3,1)
+
+    #Gain effect of an injection experiment on probability of out IF response
+    gainoutIF <- 1
+
+    #Fix the gain effect of Pre-muscimol on probability of in IF response to 1
+    #The constraint is for model identifiability
+    gaininIF[1] <- 1
+
+    for (e in 2:ninject) {
+        #Gain effect of an injection experiment on probability of in IF response
+        gaininIF[e] ~ dnorm(1, pow(3,-2))
+    }
+
+    for (e in 1:ninject) {
+        for (m in 1:nmonkeys) {
+
+            ##########
+            #Hierarchical DDM parameters
+            ##########
+
+            #Hierarchical Non-decision time
+            terhier[e,m] ~ dnorm(.5, pow(.25,-2))
+
+            #Hierarchical Speed-accuracy trade-off
+            alphahier[e,m] ~ dnorm(1, pow(.5,-2))
+
+            #Hierarchical Rightward start point bias
+            betahier[e,m] ~ dnorm(.5, pow(.25,-2))
+
+            #Hierarchical lapse trial probability
+            problapsehier[e,m] ~ dnorm(.3, pow(.15,-2))
+        }
+    }
+
+
+    for (m in 1:nmonkeys) {
+        #Number of seconds to accumulate an away from IF response when the probability of an IF response is 0%
+        rateparam[m] ~ dnorm(.5, pow(.25, -2))T(.1, 4)
+    } 
+
+    for (c in 1:nconditions) {
+        #Probability of in IF response as encoded by the IF SC
+        SCinIF[c] ~ dnorm(.5, pow(.25, -2))T(0, 1)
+    } 
+
+
+    for (s in 1:nsessions) {
+
+        ##########
+        #DDM parameters
+        ##########
+
+        #Non-decision time
+        ter[s] ~ dnorm(terhier[inject[s],monkey[s]], pow(tersd,-2))T(0, 1)
+
+        #Speed-accuracy trade-off
+        alpha[s] ~ dnorm(alphahier[inject[s],monkey[s]], pow(alphasd,-2))T(0, 3)
+
+        #Rightward start point bias
+        beta[s] ~ dnorm(betahier[inject[s],monkey[s]], pow(betasd,-2))T(0, 1)
+
+        #Probability of a lapse trial
+        problapse[s] ~ dnorm(problapsehier[inject[s],monkey[s]], pow(problapsesd,-2))T(0, 1)
+        probDDM[s] <- 1 - problapse[s]
+
+        for (c in 1:nconditions) {
+
+            #Rightward/Leftward drift rate
+            deltaright[s,c] <- ( SCinIF[c]*gaininIF[inject[s]] - (1 - SCinIF[c])*gainoutIF ) / ( rateparam[monkey[s]] )
+
+        }
+
+    }
+
+    ##########
+    # Wiener likelihoods
+    for (i in 1:N) {
+
+        # Log density for DDM process of rightward/leftward RT
+        ld_comp2[i, 1] <- dlogwiener(rightwardRT[i], alpha[session[i]], ter[session[i]], beta[session[i]], deltaright[session[i],condition[i]])
+
+        # Log density for lapse trials (negative max RT to positive max RT)
+        ld_comp2[i, 2] <- logdensity.unif(rightwardRT[i], -3, 3)
+
+        # Select one of these two densities (Mixture of nonlapse and lapse trials)
+        selected_density[i] <- exp(ld_comp2[i, DDMorLapse[i]] - Constant)
+        
+        # Generate a likelihood for the MCMC sampler using a trick to maximize density value
+        Ones2[i] ~ dbern(selected_density[i])
+
+        # Probability of mind wandering trials (lapse trials)
+        DDMorLapse[i] ~ dcat( c(probDDM[session[i]], problapse[session[i]]) )
+    }
+}
