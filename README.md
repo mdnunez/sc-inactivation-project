@@ -1,5 +1,5 @@
 # SC Inactivation Project
-#### (Repository version 0.1.0)
+#### (Repository version 0.2.0)
 
 ### Citation
 

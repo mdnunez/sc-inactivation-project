@@ -1,6 +1,6 @@
 # mky3_modelresults.py - Evaluates results of models fit to RT & choice data RT data from Glass Pattern stimuli (e.g. Glass_Pattern_Master.d)
 #
-# Copyright (C) 2020 Michael D. Nunez, <mdnunez1@uci.edu>
+# Copyright (C) 2021 Michael D. Nunez, <mdnunez1@uci.edu>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -48,6 +48,7 @@
 # 08/13/20      Michael Nunez          Invert BF for the first gaininIF parameter for precision
 # 11/03/20      Michael Nunez        Adding models prior sensitivity models: 'PrePostRecHalfNarrow', 'PrePostRecHalfShifted', 'PrePostRecHalfWide'
 # 11/24/20      Michael Nunez           Invert BF results for start point
+# 03/08/21      Michael Nunez               Include results from 'PrePostRecLinearDrift'
 
 #References:
 #https://stackoverflow.com/questions/419163/what-does-if-name-main-do
@@ -371,6 +372,9 @@ def save_figures(samples, filename):
     elif filename.find('PrePostRec2Accum') != -1:
         model = 13
         modelname = 'PrePostRec2Accum'
+    elif filename.find('PrePostRecLinearDrift') != -1:
+        model = 14
+        modelname = 'PrePostRecLinearDrift'
 
 
     if not os.path.exists((f'../../figures/{dataname}')):
@@ -434,7 +438,7 @@ def save_figures(samples, filename):
         plt.title('Accuracy drift rate posteriors', fontsize=fontsize)
         plt.savefig((f'../../figures/{dataname}/{modelname}_DeltaAccPosteriors.png'), dpi=300, format='png',bbox_inches="tight")
 
-    if (model != 13):
+    if (model < 13):
         plt.figure()
         if model > 3:
             jellyfish(samples['deltarighthier'])
@@ -443,7 +447,7 @@ def save_figures(samples, filename):
         plt.xlabel('Evidence units per second', fontsize=fontsize)
         plt.title('Rightward drift rate posteriors', fontsize=fontsize)
         plt.savefig((f'../../figures/{dataname}/{modelname}_DeltaRightPosteriors.png'), dpi=300, format='png',bbox_inches="tight")
-    else:
+    elif (model == 13):
         plt.figure()
         jellyfish(samples['rateparam'])
         plt.xlabel('Seconds to accumulate away IF response when IF probability 0%', fontsize=fontsize)
@@ -498,6 +502,18 @@ def save_figures(samples, filename):
         bf_rec_saline = num_rec_saline / denom
         print("The Bayes Factor of a gaintoIF of NOT 1 in Rec-saline-data was %3.4f" % (1/bf_rec_saline))
         print("The posterior median of gaintoIF in Rec-saline-data was %3.4f" % (median_gaininIF[4]))
+    elif (model == 14):
+        plt.figure()
+        jellyfish(samples['driftbias'])
+        plt.xlabel('Evidence units per second', fontsize=fontsize)
+        plt.title('ToIF drift bias', fontsize=fontsize)
+        plt.savefig((f'../../figures/{dataname}/{modelname}_DriftBias.png'), dpi=300, format='png',bbox_inches="tight")
+        plt.figure()
+        jellyfish(samples['proportionality'])
+        plt.xlabel('Effect of coherence on drift rate', fontsize=fontsize)
+        plt.title('Linear effect of coherence', fontsize=fontsize)
+        plt.savefig((f'../../figures/{dataname}/{modelname}_Proportionality.png'), dpi=300, format='png',bbox_inches="tight")
+
 
     plt.figure()
     if model > 3:

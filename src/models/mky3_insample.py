@@ -1,6 +1,6 @@
 # mky3_insample.py - Evaluates prediction of models fit to RT & choice data RT data during the SCInject experiment
 #
-# Copyright (C) 2020 Michael D. Nunez, <mdnunez1@uci.edu>
+# Copyright (C) 2021 Michael D. Nunez, <mdnunez1@uci.edu>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 # 05/20/20      Michael Nunez           Include model 'DayHalfNDTFree' & separate full prediction results by monkey
 # 06/05/20      Michael Nunez          Include model mky3_DayHalfSPBound.py
 # 11/30/20      Michael Nunez          Include model mky3_PrePostRecAccum.py
+# 03/08/21      Michael Nunez          Include model mky3_PrePostRecLinearDrift.py
 
 
 # Online referencs:
@@ -108,6 +109,9 @@ def plot_psychometric(filename):
     elif filename.find('PrePostRec2Accum') != -1:
         model = 13
         modelname = 'PrePostRec2Accum'
+    elif filename.find('PrePostRecLinearDrift') != -1:
+        model = 14
+        modelname = 'PrePostRecLinearDrift'
 
     if (model>=4):
 

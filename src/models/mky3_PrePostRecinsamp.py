@@ -1,6 +1,6 @@
 # mky3_PrePostRecinsamp.py - Generates behavioral data from PrePostRecmodel1 then compares to real data
 #
-# Copyright (C) 2020 Michael D. Nunez, <mdnunez@mednet.ucla.edu>
+# Copyright (C) 2021 Michael D. Nunez, <mdnunez@mednet.ucla.edu>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 # 06/05/20      Michael Nunez      Correct generation posterior predictives for 'DayHalfNDTFree', Include model mky3_DayHalfSPBound.py
 # 06/08/20      Michael Nunez      Correct generation posterior predictives for 'DayHalfSPBound'
 # 11/30/20      Michael Nunez          Include model mky3_PrePostRecAccum.py
+# 03/08/21      Michael Nunez          Include model mky3_PrePostRecLinearDrift.py
 
 import numpy as np
 import scipy.io as sio
@@ -242,6 +243,10 @@ def generate_data(filename,seed=11, Niter=100):
     elif filename.find('PrePostRec2Accum') != -1:
         model = 13
         modelname = 'PrePostRec2Accum'
+    elif filename.find('PrePostRecLinearDrift') != -1:
+        model = 14
+        modelname = 'PrePostRecLinearDrift'
+
 
     #Load original data
     dataname = filename[0:filename.find('_')]
@@ -329,7 +334,7 @@ def generate_data(filename,seed=11, Niter=100):
                 Deltaacc = samples['deltaacc'][session[n],condition[n],whichsamp[i],whichchain[i]]
                 Deltaright = samples['deltaright'][session[n],condition[n],whichsamp[i],whichchain[i]]
                 Zeta = samples['beta'][session[n],whichsamp[i],whichchain[i]]*samples['alpha'][session[n],whichsamp[i],whichchain[i]]
-            elif ((model ==5) | (model==13)): #Note that deltaright in model 'PrePostRec2Accum' is directly derived from other variables and is tracked
+            elif ((model ==5) | (model==13) | (model==14)): #Note that deltaright in models 'PrePostRec2Accum' and 'PrePostRecLinearDrift' is directly derived from other variables and is tracked
                 Alpha = samples['alpha'][session[n],whichsamp[i],whichchain[i]]
                 Ter = samples['ter'][session[n],whichsamp[i],whichchain[i]]
                 Deltaright = samples['deltaright'][session[n],condition[n],whichsamp[i],whichchain[i]]
@@ -392,7 +397,7 @@ def generate_data(filename,seed=11, Niter=100):
     if model < 5:
         inpred = dict(correctRT=savecorrectRT, rightwardRT=saverightwardRT, session=np.squeeze(session), condition=np.squeeze(condition), 
             correctRT_pred=correctRT_pred, rightwardRT_pred=rightwardRT_pred, correctEta=correctEta, rightwardEta=rightwardEta, uselapse=uselapse)
-    elif (model==5) | (model==13):
+    elif (model==5) | (model==13) | (model==14):
         inpred = dict(correctRT=saverightwardRT, rightwardRT=saverightwardRT, session=np.squeeze(session), condition=np.squeeze(condition), 
             correctRT_pred=rightwardRT_pred, rightwardRT_pred=rightwardRT_pred, correctEta=rightwardEta, rightwardEta=rightwardEta, uselapse=uselapse)
     elif (model==6) | (model==7) | (model==10) | (model==11):
