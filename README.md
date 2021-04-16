@@ -3,7 +3,7 @@
 
 ### Citation
 
-Jun, E. J., Bautista, A., Nunez, M. D., Tak, T., Alvarez, E., Basso, M. A. (2020). [Embodied cognition and decision-making in the primate superior colliculus](https://www.biorxiv.org/content/10.1101/2020.08.14.251777v1). bioRxiv, 251777
+Jun, E. J., Bautista, A. R., Nunez, M. D., Allen, D. C, Tak, J. H., Alvarez, E., Basso, M. A. (2020). [Embodied cognition and decision-making in the primate superior colliculus](https://www.biorxiv.org/content/10.1101/2020.08.14.251777v1). bioRxiv, 251777
 
 ## Getting Started
 
@@ -25,6 +25,8 @@ pip install pyjags
 [R](https://www.r-project.org/)
 
 [ChartR](https://github.com/mailchand/CHaRTr)
+
+[Palamedes](http://www.palamedestoolbox.org/)
 
 
 ### Downloading
