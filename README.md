@@ -1,6 +1,8 @@
 # SC Inactivation Project
 #### (Repository version 0.1.1)
 
+Note that this repository is a fork of the original on [gitlab](https://gitlab.com/fuster-lab-cognitive-neuroscience/sc-inactivation-project)
+
 ### Citation
 
 Jun, E. J., Bautista, A., Nunez, M. D., Allen, D. C., Tak, J. H., Alvarez, E., Basso, M. A. (2021). [Causal role for the primate superior colliculus in the computation of evidence for perceptual decisions](https://www.nature.com/articles/s41593-021-00878-6.epdf?sharing_token=alTJNGt7dLdwsp-jZk6OWNRgN0jAjWel9jnR3ZoTv0PCntPI-NBEHPcVRFJdN8ENsUE-yHy7z3ccBLF113IPsFSXPgWX8PXvKIPeExS8kFVrEggTxLN5s5xgpQEBOto7oT01GkMMdTMh5tVpNNkYxk2iUAu7AXcI-X8k87E23vc%3D). Nature Neuroscience. 24, 1121–1131.
@@ -57,7 +59,7 @@ Analysis of aggregate data, collapsed across injection sessions: run VGST_task_a
 
 ### Downloading
 
-The repository can be cloned with `git clone https://gitlab.com/fuster-lab-cognitive-neuroscience/sc-inactivation-project.git`
+The repository can be cloned with `git clone https://github.com/mdnunez/sc-inactivation-project.git`
 
 The repository can also be may download via the _Clone_ button above.
 
