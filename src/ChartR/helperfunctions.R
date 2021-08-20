@@ -1,4 +1,4 @@
-dyn.load("chartr-ModelSpecFast.so")
+dyn.load("chartr-ModelSpecFast.so")   #load the shared object created by compiling the C code chartr-modelSpecFast.C
 
 # 24 models 
 #' Generate a list of models to be used for fitting RTs and Choice
@@ -121,15 +121,15 @@ printModels = function()
 #' paramsandlims
 #'
 #' @param model -- name of the model that is typically generated using list of models
-#' @param nds   -- Number of stimulus levels used for decision-making
+#' @param nds   -- Number of stimulus levels used for decision-making task
 #' @param fakePars -- Generate fakeparameters for simulations
-#' @param nstart  -- Sometimes there is a true zero sensory evidence stimulus
+#' @param nstart  -- Sometimes there is a true zero sensory evidence stimulus, ie nstart = 1 when you have 0 coherence
 #'
 #' @return list with fields parnames, upper limits, lower limits, variable of whether it is a UGM class of models or DDM class of models, and fakeparams if generated.
 #' @export
 #'
 #' @examples
-#' paramsandlims(model='DDM',nds=7,fakePars=FALSE,nstart=1)
+
 paramsandlims=function(model, nds, fakePars=FALSE, nstart=1,fullrangefit,fixed_params_df)
 {
   # Non UGMs will have values less than 0
@@ -138,17 +138,25 @@ paramsandlims=function(model, nds, fakePars=FALSE, nstart=1,fullrangefit,fixed_p
   
   fitUGM = listOfModels$modelIds[model]
   
-  upper_v_ddm = .6;    #drift rates in evidence units / sec
-  upper_aU_ddm = .5;   #upper bound in evidence units 
-  upper_Ter = 0.8;     #NDT in sec
-  upper_st0 = 0.6;     
-  upper_eta = .3;
-  upper_z = 1;          # % of the aU 
-  upper_zmin = 1;
-  upper_zmax = 1;
+  # v = drift rate, aU = upper bound, Ter = non decision time (NDT), st0 = trial-trial variance on NDT, eta = trial-trial variance of drift rate
+  # z = proportional start point, zmin = lower bound of trial-trial variability of start point, zmax = upper bound of trial-trial variability of start point
   
+  # for DDMs
+  upper_v_ddm = .6;    # upper constraint of drift rates in evidence units / sec for DDMs (but for UGMs, it's decision variable units/ms)
+  upper_aU_ddm = .5;   #upper constraint of upper bound in evidence units 
+  upper_Ter = 0.8;     #upper constraint on NDT in sec
+  upper_st0 = 0.6;     # upper constraint of trial-trial variation of non-decision time parameter
+  upper_eta = .3;       # upper constraint of trial-trial variation of drift rate parameter
+  upper_z = 1;          # z is the % of the aU, representing the proportional start point such that when z = 0.5, the start point is in the middle, when z > 0.5, the start point is close to upper bound, z< 0.5 means start point is closer to lower bound 
+  upper_zmin = 1;       # upper constraint on the lower bound of trial-trial variation of start point parameter
+  upper_zmax = 1;       # upper constraint on the upper bound of trial-trial variation of start point parameter
   
-  upper_v_urgency = 40;
+  # intercept = intercept parameter of linear urgency signal; ieta  = trial-trial variance of intercept for urgency,
+  # usign_var = slope parameter of the linear urgency signal; timecons_var = time constant parameter for low pass filter
+  # aprime = parameter for collapsing bound, lambda = parameter for collapsing bound, k = parameter for collapsing bound
+  
+  # for UGMs
+  upper_v_urgency = 40;   #upper constraint on drift rates in UGM
   upper_aU_urgency = 20000;
   upper_eta_urgency = 20;
   upper_intercept = 1000;
@@ -156,17 +164,18 @@ paramsandlims=function(model, nds, fakePars=FALSE, nstart=1,fullrangefit,fixed_p
   upper_usign_var = 20;
   upper_timecons_var = 2000;
   
-  
   upper_aprime = 0.5;
   
-  NdriftRates = nds - nstart + 1; # Say 6 drift rates, starting at 2, means 5 conditions
+  NdriftRates = nds - nstart + 1; 
   
   TempNamesDDM = c(paste("v",(nstart):(nds),sep=""), "z", "aU","Ter","eta", "st0",
                    "zmin","zmax","sx","sy","delay","lambda", "aprime","k");
   
+  #I like to play around with this to get simulations of what the RT quantile plots would look like if I changed a particular parameter
   fakeParsDDM = c(seq(0.04, 0.4, length.out = NdriftRates), 0.6, 0.13, 0.5, 0.1, 0.15, 0.08, 0.12, 9, 9,0.14, 0.5, 0.3, 10);
   #fakeParsDDM = c(-0.25,-0.15,-0.1,-0.05,-0.03,0,0.03,0.05,0.1,0.15,0.25, 0.5, 0.13, 0.55, 0.08, 0.3, 0.1, 0.15, 0.08, 0.12, 9, 9,0.14, 0.63, 0.06, 2.3)
   #fakeParsDDM = c(seq(0.04, 0.4, length.out = NdriftRates), 0.08, 0.3, 0.1, 0.15, 0.08, 0.12, 9, 9,0.14, 5, 0.3, 10);
+  
   names(fakeParsDDM) = TempNamesDDM;
   
   TempNamesUGM = c(paste("v",(nstart):(nds),sep=""),"z","aU","Ter","eta", "st0",
@@ -433,7 +442,7 @@ paramsandlims=function(model, nds, fakePars=FALSE, nstart=1,fullrangefit,fixed_p
     lowers[1:NdriftRates] = -upper_v_ddm
   }
   
-  #my custom uppers and lowers 
+  #my custom upper and lower constraints for each parameter if fullrangefit != 1 -- never used this feature, but it's here 
   
   if (fullrangefit != 1) {
     if (fitUGM > 0) {     #Fitting UGM with non-full range fit
@@ -494,11 +503,11 @@ paramsandlims=function(model, nds, fakePars=FALSE, nstart=1,fullrangefit,fixed_p
   idx = which(parnames == "Ter")
   lowers[idx] = 0.05;
   
-
-    idx = which(parnames == 'z')
-    uppers[idx] = 1
-    lowers[idx] = 0
-
+  
+  idx = which(parnames == 'z')
+  uppers[idx] = 1
+  lowers[idx] = 0
+  
   
   
   if(fakePars)
@@ -517,7 +526,7 @@ paramsandlims=function(model, nds, fakePars=FALSE, nstart=1,fullrangefit,fixed_p
     fakeParams = NULL;
   }
   
-    fixed_params_names_list = character()
+  fixed_params_names_list = character()
   if  (sum(fixed_params_df['fixed_params']) != 0) {    #If there are some fixed parameters
     indices_of_1 = which(fixed_params_df['fixed_params'] == 1)  #get the list of the names of the parameters that would be fixed
     for (n in 1:sum(fixed_params_df['fixed_params'])) {
@@ -530,7 +539,7 @@ paramsandlims=function(model, nds, fakePars=FALSE, nstart=1,fullrangefit,fixed_p
       lowers = lowers[-(takeout_index)]
     }
     
-    }
+  }
   
   list(parnames=parnames, uppers=uppers, lowers=lowers, fitUGM=fitUGM, fakeParams = fakeParams)
   }
@@ -574,7 +583,6 @@ paramsandlims=function(model, nds, fakePars=FALSE, nstart=1,fullrangefit,fixed_p
 #' @export
 #'
 #' @examples
-#' diffusionC(v=0.4, eta=0.05, aU=0.1,aL=0, Ter=0.3,z=0.05,nmc=1000,dt=0.001,stoch.s=0.1,maxTimeStep=4,fitUGM=-12)
 
 #Simulating the diffusion process with the specific parameters
 diffusionC=function(v,eta,aU,aL,Ter,intercept,ieta,st0, z, zmin, zmax, nmc, dt,stoch.s,
@@ -582,9 +590,9 @@ diffusionC=function(v,eta,aU,aL,Ter,intercept,ieta,st0, z, zmin, zmax, nmc, dt,s
                     sx=sx, sy=sy, delay=delay, lambda = lambda, aprime = aprime, k = k, 
                     VERBOSE=FALSE, FASTRAND=TRUE,
                     nLUT=nLUT, LUT = LUT,fixed_params_df) 
-  # v - 
+  # v - drift rate
   # eta - 
-  # aU - 
+  # aU - bound
   # intercept - intercept for the urgency signal
   # ieta - variability for the intercept
   # st0 - variability in non decision-time
@@ -601,12 +609,12 @@ diffusionC=function(v,eta,aU,aL,Ter,intercept,ieta,st0, z, zmin, zmax, nmc, dt,s
 # sx, xy, delay - parameters for the Ditterich model
 # lambda, aprime, k - parameters for the collapsing bounds model
 {
-  if(FASTRAND)
-    dyn.load("chartr-ModelSpecFast.so")
+  if(FASTRAND)   #for faster modeling, generating random numbers from look up table (LUT)
+    dyn.load("chartr-ModelSpecFast.so")    #load the shared object
   else
   {
     dyn.load("chartr-ModelSpec.so")
-    # print("Slow Rand")
+    print("Slow Rand")
   }
   
   rts <- resps <- numeric(nmc)
@@ -617,7 +625,7 @@ diffusionC=function(v,eta,aU,aL,Ter,intercept,ieta,st0, z, zmin, zmax, nmc, dt,s
   if(VERBOSE) 
     print(modelName);
   
-  
+  #getting "out", which has stimulated rt's and choice
   switch(modelName,
          # DDM -----------------------------    
          # 1
@@ -1008,10 +1016,6 @@ diffusionC=function(v,eta,aU,aL,Ter,intercept,ieta,st0, z, zmin, zmax, nmc, dt,s
          }
          
          
-         # Example to get a collapsing UGM up and running.
-         
-         # Now calibrate variable slope for the data
-         
   )
   rts[rts<0]=0
   list(rts=rts,resps=out$resp)
@@ -1035,31 +1039,30 @@ makeparamlist=function(params,fitUGM,ncohs, zeroCoh=FALSE,fixed_params_df)
   {
     v=c(params[paste("v",1:length(ncohs),sep="")])
   }
-
+  
   
   # upper bound
   aU=params["aU"]
-
+  
   
   #non-decision time
   Ter=params["Ter"]
-
   
-
+  
+  
   if(fitUGM < 0) {
     aL=0
     #starting point 
-
     z = params["z"]*aU    #params["z"] is the position defined as the proportion of aU, while z = actual position
-
-    } else {
+    
+  } else {
     aL=-aU
     #starting point
-
+    
     z=params["z"]*(2*aU)+aL
-
+    
   }
-
+  
   
   eta=params["eta"]
   intercept = params["intercept"]
@@ -1079,6 +1082,8 @@ makeparamlist=function(params,fitUGM,ncohs, zeroCoh=FALSE,fixed_params_df)
   aprime = params["aprime"]
   lambda = params["lambda"]
   
+  
+  # for fixing parameter values 
   fixed_params_names_list = as.character()
   if  (sum(fixed_params_df['fixed_params']) != 0) {    #If there are some fixed parameters
     indices_of_1 = which(fixed_params_df['fixed_params'] == 1)  #get the list of the names of the parameters that would be fixed
@@ -1155,12 +1160,11 @@ makeparamlist=function(params,fitUGM,ncohs, zeroCoh=FALSE,fixed_params_df)
     if (sum(fixed_params_names_list == 'usign_var') == 1) {
       usign_var = fixed_params_df[['fixed_values']][[which(fixed_params_df['names'] == 'usign_var')]]
     } 
-        
-    }
+    
+  }
   
   
   
-  # Use some scaling and delay parameters as well for the analysis of urgency models
   list(v=v,eta=eta,aU=aU,aL=aL,z=z,Ter=Ter, intercept=intercept,st0=st0, ieta=ieta, zmin = zmin, 
        zmax = zmax, timecons_var = timecons_var, usign_var = usign_var,
        sx=sx, sy=sy, delay=delay, k=k, aprime = aprime, lambda = lambda)  
@@ -1171,7 +1175,7 @@ makeparamlist=function(params,fitUGM,ncohs, zeroCoh=FALSE,fixed_params_df)
 # 
 #
 #
-# 
+# For simulating RTs, calls on the diffusionC function that does the simulation 
 simulateRTs = function(model, ps, nmc=50000, maxiter=10000, nds=7, showAxisLabels = FALSE, plotData=TRUE, 
                        FASTRAND=TRUE){
   # model specifies the model to simulate

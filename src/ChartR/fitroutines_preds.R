@@ -1,3 +1,7 @@
+# This is the fit routine script used for getting predictions for fake or real parameters to test
+# the parameter recovery of a toIF/awayIF model. 
+# Goes with getpreds.R
+
 # generic fitting routine for fixed vs collapsing bound models #
 #
 #
@@ -44,17 +48,20 @@ qmpouts=function(qs,preds,pred=F,qps,contp,nmc) {
 }
 
 #Simulating and outputs predictions
-getpreds=function(x,dat,nmc,contp,ncohs,fitUGM,pred=F,gub,
+getpreds=function(x,nmc,contp,ncohs,fitUGM,pred=F,gub,
                   qps,stepsize,stoch.s,timecons,usign,parnames,maxTimeStep,fixed_params_df) {
   # pred=F returns chi-squared, pred=T returns a list like dat with predicted
   # quantiles and probabilities (for later plotting)
   # - don't need dat for fitting, but use it to get shape for model preds
   names(x)=parnames
-  
+  stop=1
   z=makeparamlist(params=x,fitUGM=fitUGM,ncohs=ncohs, zeroCoh = FALSE,fixed_params_df=fixed_params_df)
   #  maxiter=as.double(length(seq(0,bailouttime,stepsize)))  # bailouttime for C code
-  mod=list(p=vector(length=length(dat$p)))
-  if(pred) mod$q=array(dim=dim(dat$q)) else mod$q=array(dim=dim(dat$pb))
+  #mod=list(p=vector(length=length(dat$p)))
+  #if(pred) mod$q=array(dim=dim(dat$q)) else mod$q=array(dim=dim(dat$pb))
+  df_preds = data.frame(ncohs)
+  all_tmp_rt_list = list()
+  all_tmp_resp_list = list()
   
   interval=0.00001;
   LUT=qnorm(seq(interval,1-interval,interval));
@@ -62,12 +69,13 @@ getpreds=function(x,dat,nmc,contp,ncohs,fitUGM,pred=F,gub,
   
   for(N in 1:length(ncohs)){   #for each coherence
     #tmp is the rt predictions and the response predictions for 10000 simulated trials for a single coherence
+    stop = 1
     tmp=diffusionC(v=z$v[N],eta=z$eta,aU=z$aU,aL=z$aL,Ter=z$Ter,
                    intercept=z$intercept, ieta=z$ieta, st0=z$st0,
                    z=z$z, zmin=z$zmin,zmax=z$zmax,timecons_var = z$timecons_var, usign_var = z$usign_var, 
                    sx = z$sx, sy=z$sy, delay=z$delay,lambda = z$lambda, aprime = z$aprime, k = z$k,
                    nmc=nmc,dt=stepsize,stoch.s=stoch.s,maxTimeStep=maxTimeStep,fitUGM=fitUGM, timecons=timecons,usign=usign, 
-                   nLUT=nLUT, LUT=LUT,fixed_params_df=fixed_params_df)   
+                   nLUT=nLUT, LUT=LUT, fixed_params_df=fixed_params_df)   
     # remove trials slower than gub
     use=tmp$rts<gub
     # with no between trial variability, can get stuck in bad parameter space
@@ -78,11 +86,14 @@ getpreds=function(x,dat,nmc,contp,ncohs,fitUGM,pred=F,gub,
       tmp$resps=tmp$resps[use] ; tmp$rts=tmp$rts[use]    #only use those usable RTs
     }
     # use function qmpouts for simulation models
-    tmp=qmpouts(qs=dat$q[,,N],preds=tmp,pred=pred,qps=qps,contp=contp$p,nmc=sum(use))
-    mod$p[N]=tmp$p[1]   # correct stored in p[1], error in p[2]
-    mod$q[,,N]=switch(pred+1,tmp$predp,tmp$predq)
+    # tmp=qmpouts(qs=dat$q[,,N],preds=tmp,pred=pred,qps=qps,contp=contp$p,nmc=sum(use))
+    all_tmp_rt_list = c(all_tmp_rt_list, list(c(tmp$rts)))
+    all_tmp_resp_list = c(all_tmp_resp_list, list(c(tmp$resps)))
   }
-  mod   #the proportion correct/incorrect, rt quantile probability masses 
+  df_preds$rt = all_tmp_rt_list
+  df_preds$resp = all_tmp_resp_list
+  df_preds$ntrials = lengths(all_tmp_resp_list)
+  df_preds
 }
 
 obj=function(x,dat,nmc,contp,ncohs,fitUGM,pred=F,gub,
@@ -90,7 +101,6 @@ obj=function(x,dat,nmc,contp,ncohs,fitUGM,pred=F,gub,
   preds=getpreds(x=x,dat=dat,nmc=nmc,contp=contp,ncohs=ncohs,fitUGM=fitUGM,
                  pred=pred,gub=gub,qps=qps,stepsize=stepsize,stoch.s=stoch.s,
                  timecons=timecons,usign=usign,parnames=parnames,maxTimeStep=maxTimeStep,fixed_params_df=fixed_params_df)
-  print("n")
   if(!pred) {   #if you don't want to predict just yet, but get a qmp value,
     -sum(dat$pb*log(pmax(preds$q,1e-10)))    #this is the qmp value
   } else {
